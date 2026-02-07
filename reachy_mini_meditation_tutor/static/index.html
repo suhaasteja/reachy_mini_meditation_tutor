@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Reachy Mini example app template</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+
+<body>
+    <h1>Reachy Mini – Control Panel</h1>
+
+    <div id="controls">
+        <label style="display:flex; align-items:center; gap:8px;">
+            <input type="checkbox" id="antenna-checkbox" checked>
+            Antennas
+        </label>
+
+        <label style="display:flex; align-items:center; gap:8px;">
+            <input type="checkbox" id="breath-sound-checkbox">
+            Breathing sound
+        </label>
+
+        <div id="session-controls">
+            <div id="session-buttons" role="group" aria-label="Session duration">
+                <button class="session-btn" data-minutes="3">3 min</button>
+                <button class="session-btn" data-minutes="5">5 min</button>
+                <button class="session-btn" data-minutes="10">10 min</button>
+            </div>
+
+            <div id="run-buttons" role="group" aria-label="Run controls">
+                <button id="start-btn">Start</button>
+                <button id="stop-btn" class="secondary">Stop</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="status">Ready</div>
+    <script src="/static/main.js"></script>
+</body>
+
+</html>
