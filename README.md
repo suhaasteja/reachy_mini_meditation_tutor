@@ -25,9 +25,8 @@ Timed breathing sessions for Reachy Mini (works in simulation or on a real robot
 ### 1) Create a venv and install Reachy Mini + MuJoCo
 
 ```bash
-mkdir -p ~/reachy_mini_resources
-python3 -m venv ~/reachy_mini_resources/.venv
-source ~/reachy_mini_resources/.venv/bin/activate
+python3 -m venv .venv
+source .venv/bin/activate
 python -m pip install -U pip
 python -m pip install "reachy-mini[mujoco]"
 ```
@@ -35,21 +34,21 @@ python -m pip install "reachy-mini[mujoco]"
 ### 2) Clone this repo
 
 ```bash
-cd ~/Desktop
 git clone https://github.com/suhaasteja/reachy_mini_meditation_tutor.git
+cd reachy_mini_meditation_tutor
 ```
 
-### 3) Install the app into the same venv (so it shows up in the dashboard)
+### 3) Install the app into the venv (so it shows up in the dashboard)
 
 ```bash
-source ~/reachy_mini_resources/.venv/bin/activate
-pip install -e ~/Desktop/reachy_mini_meditation_tutor
+source .venv/bin/activate
+pip install -e .
 ```
 
 ### 4) Run the simulation daemon (macOS)
 
 ```bash
-source ~/reachy_mini_resources/.venv/bin/activate
+source .venv/bin/activate
 mjpython -m reachy_mini.daemon.app.main --sim
 ```
 
