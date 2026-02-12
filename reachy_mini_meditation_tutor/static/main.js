@@ -1,7 +1,27 @@
+// State
 let antennasEnabled = true;
 let sessionMinutes = 3;
 let breathSoundEnabled = false;
+let isRunning = false;
+let sessionTimer = null;
+let breathingTimer = null;
 
+// Constants
+const INHALE_SECONDS = 5;
+const EXHALE_SECONDS = 8;
+const CYCLE_SECONDS = INHALE_SECONDS + EXHALE_SECONDS;
+
+// DOM elements
+const breathingCircle = document.getElementById("breathing-circle");
+const phaseText = document.getElementById("phase-text");
+const timerText = document.getElementById("timer-text");
+const startBtn = document.getElementById("start-btn");
+const stopBtn = document.getElementById("stop-btn");
+const antennaCheckbox = document.getElementById("antenna-checkbox");
+const breathSoundCheckbox = document.getElementById("breath-sound-checkbox");
+const durationButtons = document.querySelectorAll(".duration-btn");
+
+// API calls
 async function updateAntennasState(enabled) {
     try {
         const resp = await fetch("/antennas", {
@@ -11,9 +31,9 @@ async function updateAntennasState(enabled) {
         });
         const data = await resp.json();
         antennasEnabled = data.antennas_enabled;
-        updateUI();
+        antennaCheckbox.checked = antennasEnabled;
     } catch (e) {
-        document.getElementById("status").textContent = "Backend error";
+        console.error("Backend error:", e);
     }
 }
 
@@ -26,12 +46,11 @@ async function updateBreathSound(enabled) {
         });
         const data = await resp.json();
         breathSoundEnabled = data.breath_sound_enabled;
-        updateUI();
+        breathSoundCheckbox.checked = breathSoundEnabled;
     } catch (e) {
-        document.getElementById("status").textContent = "Backend error";
+        console.error("Backend error:", e);
     }
 }
-
 
 async function updateSession(minutes) {
     try {
@@ -41,74 +60,157 @@ async function updateSession(minutes) {
             body: JSON.stringify({ minutes }),
         });
         const data = await resp.json();
-        if (!data.ok) {
-            document.getElementById("status").textContent = data.error || "Invalid session";
-            return;
+        if (data.ok) {
+            sessionMinutes = data.minutes;
+            updateDurationButtons();
         }
-        sessionMinutes = data.minutes;
-        updateUI();
     } catch (e) {
-        document.getElementById("status").textContent = "Backend error";
+        console.error("Backend error:", e);
     }
 }
 
 async function startSession() {
     try {
         await fetch("/start", { method: "POST" });
-        document.getElementById("status").textContent = `Running: ${sessionMinutes} min (inhale 5s / exhale 8s)`;
+        isRunning = true;
+        updateControlsVisibility();
+        startBreathingAnimation();
+        startCountdown(sessionMinutes * 60);
     } catch (e) {
-        document.getElementById("status").textContent = "Backend error";
+        console.error("Backend error:", e);
     }
 }
 
 async function stopSession() {
     try {
         await fetch("/stop", { method: "POST" });
-        document.getElementById("status").textContent = "Stopping session...";
+        endSession();
     } catch (e) {
-        document.getElementById("status").textContent = "Backend error";
+        console.error("Backend error:", e);
     }
 }
 
-function updateUI() {
-    const checkbox = document.getElementById("antenna-checkbox");
-    const breathCheckbox = document.getElementById("breath-sound-checkbox");
-    const status = document.getElementById("status");
-    const sessionButtons = document.querySelectorAll(".session-btn");
-
-    checkbox.checked = antennasEnabled;
-    breathCheckbox.checked = breathSoundEnabled;
-
-    sessionButtons.forEach((btn) => {
+// UI updates
+function updateDurationButtons() {
+    durationButtons.forEach((btn) => {
         const minutes = Number(btn.dataset.minutes);
         btn.classList.toggle("active", minutes === sessionMinutes);
     });
+}
 
-    if (status.textContent === "Ready" || status.textContent.startsWith("Antennas")) {
-        status.textContent = `Ready — session: ${sessionMinutes} min`;
+function updateControlsVisibility() {
+    if (isRunning) {
+        startBtn.classList.add("hidden");
+        stopBtn.classList.remove("hidden");
+        durationButtons.forEach((btn) => (btn.disabled = true));
+    } else {
+        startBtn.classList.remove("hidden");
+        stopBtn.classList.add("hidden");
+        durationButtons.forEach((btn) => (btn.disabled = false));
     }
 }
 
-document.getElementById("antenna-checkbox").addEventListener("change", (e) => {
+function formatTime(seconds) {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, "0")}`;
+}
+
+// Breathing animation
+function startBreathingAnimation() {
+    let cycleTime = 0;
+
+    function updateBreathing() {
+        if (!isRunning) return;
+
+        const phase = cycleTime < INHALE_SECONDS ? "inhale" : "exhale";
+        const phaseTime = phase === "inhale" ? cycleTime : cycleTime - INHALE_SECONDS;
+
+        // Update text
+        phaseText.textContent = phase === "inhale" ? "Inhale" : "Exhale";
+
+        // Update circle class (restart animation)
+        breathingCircle.classList.remove("inhale", "exhale");
+        if (phaseTime === 0) {
+            // Force reflow to restart animation
+            void breathingCircle.offsetWidth;
+            breathingCircle.classList.add(phase);
+        }
+
+        // Advance cycle time
+        cycleTime = (cycleTime + 1) % CYCLE_SECONDS;
+
+        breathingTimer = setTimeout(updateBreathing, 1000);
+    }
+
+    // Start with inhale
+    breathingCircle.classList.add("inhale");
+    phaseText.textContent = "Inhale";
+    cycleTime = 1;
+    breathingTimer = setTimeout(updateBreathing, 1000);
+}
+
+function startCountdown(totalSeconds) {
+    let remaining = totalSeconds;
+    timerText.textContent = formatTime(remaining);
+
+    sessionTimer = setInterval(() => {
+        remaining--;
+        timerText.textContent = formatTime(remaining);
+
+        if (remaining <= 0) {
+            endSession();
+        }
+    }, 1000);
+}
+
+function endSession() {
+    isRunning = false;
+
+    // Clear timers
+    if (sessionTimer) {
+        clearInterval(sessionTimer);
+        sessionTimer = null;
+    }
+    if (breathingTimer) {
+        clearTimeout(breathingTimer);
+        breathingTimer = null;
+    }
+
+    // Reset UI
+    breathingCircle.classList.remove("inhale", "exhale");
+    phaseText.textContent = "Complete";
+    timerText.textContent = "🙏";
+    updateControlsVisibility();
+
+    // Reset after a moment
+    setTimeout(() => {
+        if (!isRunning) {
+            phaseText.textContent = "Ready";
+            timerText.textContent = "--:--";
+        }
+    }, 3000);
+}
+
+// Event listeners
+antennaCheckbox.addEventListener("change", (e) => {
     updateAntennasState(e.target.checked);
 });
 
-document.getElementById("breath-sound-checkbox").addEventListener("change", (e) => {
+breathSoundCheckbox.addEventListener("change", (e) => {
     updateBreathSound(e.target.checked);
 });
 
-document.querySelectorAll(".session-btn").forEach((btn) => {
+durationButtons.forEach((btn) => {
     btn.addEventListener("click", () => {
-        updateSession(Number(btn.dataset.minutes));
+        if (!isRunning) {
+            updateSession(Number(btn.dataset.minutes));
+        }
     });
 });
 
-document.getElementById("start-btn").addEventListener("click", () => {
-    startSession();
-});
+startBtn.addEventListener("click", startSession);
+stopBtn.addEventListener("click", stopSession);
 
-document.getElementById("stop-btn").addEventListener("click", () => {
-    stopSession();
-});
-
-updateUI();
+// Initialize
+updateDurationButtons();

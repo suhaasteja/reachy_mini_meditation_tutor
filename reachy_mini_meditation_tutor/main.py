@@ -118,8 +118,8 @@ class ReachyMiniMeditationTutor(ReachyMiniApp):
             _goto({"yaw": 0.0, "pitch": 0.0, "roll": 0.0}, antennas_deg, 1.0)
 
         def _breathing_cycle(cycle_idx: int) -> None:
-            base_yaw = 12.0 * np.sin(cycle_idx * 0.6)
-            base_roll = 8.0 * np.sin(cycle_idx * 0.9)
+            base_yaw = 5.0 * np.sin(cycle_idx * 0.6)
+            base_roll = 3.0 * np.sin(cycle_idx * 0.9)
 
             if antennas_enabled:
                 inhale_ant = np.array([18.0, -18.0])
@@ -128,14 +128,16 @@ class ReachyMiniMeditationTutor(ReachyMiniApp):
                 inhale_ant = np.array([0.0, 0.0])
                 exhale_ant = np.array([0.0, 0.0])
 
+            # Inhale: head tilts UP (negative pitch)
             _goto(
-                {"yaw": base_yaw, "pitch": -8.0, "roll": base_roll},
+                {"yaw": base_yaw, "pitch": -20.0, "roll": base_roll},
                 inhale_ant,
                 inhale_s,
             )
             _play_breath(inhale_s, intensity=0.08)
+            # Exhale: head tilts DOWN (positive pitch)
             _goto(
-                {"yaw": -base_yaw, "pitch": 10.0, "roll": -base_roll},
+                {"yaw": -base_yaw, "pitch": 15.0, "roll": -base_roll},
                 exhale_ant,
                 exhale_s,
             )

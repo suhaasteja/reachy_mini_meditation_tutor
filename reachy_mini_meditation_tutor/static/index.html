@@ -3,40 +3,83 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>Reachy Mini example app template</title>
+    <title>Meditation Tutor</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="stylesheet" href="/static/style.css">
 </head>
 
 <body>
-    <h1>Reachy Mini – Control Panel</h1>
+    <div class="app-container">
+        <header>
+            <h1>🧘 Meditation Tutor</h1>
+            <p class="subtitle">Breathe with Reachy Mini</p>
+        </header>
 
-    <div id="controls">
-        <label style="display:flex; align-items:center; gap:8px;">
-            <input type="checkbox" id="antenna-checkbox" checked>
-            Antennas
-        </label>
-
-        <label style="display:flex; align-items:center; gap:8px;">
-            <input type="checkbox" id="breath-sound-checkbox">
-            Breathing sound
-        </label>
-
-        <div id="session-controls">
-            <div id="session-buttons" role="group" aria-label="Session duration">
-                <button class="session-btn" data-minutes="3">3 min</button>
-                <button class="session-btn" data-minutes="5">5 min</button>
-                <button class="session-btn" data-minutes="10">10 min</button>
-            </div>
-
-            <div id="run-buttons" role="group" aria-label="Run controls">
-                <button id="start-btn">Start</button>
-                <button id="stop-btn" class="secondary">Stop</button>
+        <!-- Breathing Circle -->
+        <div class="breathing-section">
+            <div class="breathing-circle" id="breathing-circle">
+                <div class="phase-text" id="phase-text">Ready</div>
+                <div class="timer-text" id="timer-text">--:--</div>
             </div>
         </div>
+
+        <!-- Session Duration -->
+        <div class="duration-section">
+            <p class="section-label">Session Duration</p>
+            <div class="duration-buttons" id="session-buttons">
+                <button class="duration-btn active" data-minutes="3">3 min</button>
+                <button class="duration-btn" data-minutes="5">5 min</button>
+                <button class="duration-btn" data-minutes="10">10 min</button>
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="controls-section">
+            <button class="start-btn" id="start-btn">
+                <span class="btn-icon">▶</span> Start Session
+            </button>
+            <button class="stop-btn hidden" id="stop-btn">
+                <span class="btn-icon">■</span> Stop
+            </button>
+        </div>
+
+        <!-- Options -->
+        <div class="options-section">
+            <label class="option-toggle">
+                <input type="checkbox" id="antenna-checkbox" checked>
+                <span class="toggle-slider"></span>
+                <span class="toggle-label">Antenna Movement</span>
+            </label>
+            <label class="option-toggle">
+                <input type="checkbox" id="breath-sound-checkbox">
+                <span class="toggle-slider"></span>
+                <span class="toggle-label">Breathing Sound</span>
+            </label>
+        </div>
+
+        <!-- Breathing Pattern Info -->
+        <div class="info-section">
+            <div class="info-card">
+                <span class="info-icon">💨</span>
+                <div>
+                    <strong>Inhale</strong>
+                    <span>5 seconds</span>
+                </div>
+            </div>
+            <div class="info-card">
+                <span class="info-icon">😮‍💨</span>
+                <div>
+                    <strong>Exhale</strong>
+                    <span>8 seconds</span>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <p>Reachy Mini by <a href="https://pollen-robotics.com" target="_blank">Pollen Robotics</a></p>
+        </footer>
     </div>
 
-    <div id="status">Ready</div>
     <script src="/static/main.js"></script>
 </body>
 
