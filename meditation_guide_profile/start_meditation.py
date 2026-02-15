@@ -36,6 +36,10 @@ class StartMeditation(Tool):
                 "type": "number",
                 "description": "Custom exhale duration in seconds (optional, uses current setting if not specified)",
             },
+            "voice_guidance": {
+                "type": "boolean",
+                "description": "Enable voice guidance saying 'Inhale/Exhale' with counting (default: true)",
+            },
         },
         "required": ["duration_minutes"],
     }
@@ -60,13 +64,15 @@ class StartMeditation(Tool):
         inhale_s = kwargs.get("custom_inhale_s", config['inhale_s'])
         exhale_s = kwargs.get("custom_exhale_s", config['exhale_s'])
         breath_sound = kwargs.get("breath_sound", config['breath_sound_enabled'])
+        voice_guidance = kwargs.get("voice_guidance", True)  # Default to enabled
         antennas_enabled = config['antennas_enabled']
         sound_type = config['sound_type']
 
         logger.info(
             f"Tool call: start_meditation duration={duration_minutes}min, "
             f"inhale={inhale_s}s, exhale={exhale_s}s, "
-            f"sound={breath_sound}, antennas={antennas_enabled}"
+            f"sound={breath_sound}, antennas={antennas_enabled}, "
+            f"voice_guidance={voice_guidance}"
         )
 
         try:
@@ -79,6 +85,7 @@ class StartMeditation(Tool):
                 breath_sound_enabled=breath_sound,
                 sound_type=sound_type,
                 reachy_mini=deps.reachy_mini,
+                voice_guidance=voice_guidance,
             )
 
             # Queue the move
@@ -95,6 +102,7 @@ class StartMeditation(Tool):
                 "inhale_s": inhale_s,
                 "exhale_s": exhale_s,
                 "breath_sound": breath_sound,
+                "voice_guidance": voice_guidance,
                 "total_duration_s": total_duration,
             }
 

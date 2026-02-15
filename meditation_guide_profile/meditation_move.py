@@ -38,6 +38,7 @@ class MeditationMove(Move):  # type: ignore
         breath_sound_enabled: bool = False,
         sound_type: str = 'ambient',
         reachy_mini = None,
+        voice_guidance: bool = True,
     ):
         """Initialize meditation move.
 
@@ -48,6 +49,7 @@ class MeditationMove(Move):  # type: ignore
             antennas_enabled: Whether to move antennas during breathing
             breath_sound_enabled: Whether to play breath sounds
             sound_type: Type of breath sound ('ambient', 'ocean', 'white_noise')
+            voice_guidance: Whether to speak "Inhale/Exhale" and count
         """
         self.duration_minutes = duration_minutes
         self.inhale_s = inhale_s
@@ -56,6 +58,7 @@ class MeditationMove(Move):  # type: ignore
         self.breath_sound_enabled = breath_sound_enabled
         self.sound_type = sound_type
         self.reachy_mini = reachy_mini
+        self.voice_guidance = voice_guidance
 
         # Calculate total cycles
         self.cycle_s = inhale_s + exhale_s
@@ -68,7 +71,7 @@ class MeditationMove(Move):  # type: ignore
         self.exhale_pitch = 8.0    # Subtle tilt down (was 15.0)
         self.inhale_z = 0.01       # Lift slightly (breathing depth)
         self.exhale_z = -0.005     # Lower slightly
-        
+
         if antennas_enabled:
             self.inhale_antennas = np.array([18.0, -18.0])  # Spread
             self.exhale_antennas = np.array([6.0, -6.0])    # Narrow
@@ -79,11 +82,20 @@ class MeditationMove(Move):  # type: ignore
         # Track last phase for sound triggering
         self._last_phase = None
         self._last_cycle_idx = -1
+        self._last_second = -1  # Track last spoken second for counting
+
+        # Number words for counting seconds
+        self._number_words = [
+            "one", "two", "three", "four", "five",
+            "six", "seven", "eight", "nine", "ten",
+            "eleven", "twelve", "thirteen", "fourteen", "fifteen"
+        ]
 
         logger.info(
             f"MeditationMove initialized: {duration_minutes}min, "
             f"inhale={inhale_s}s, exhale={exhale_s}s, "
-            f"cycles={self.total_cycles}, antennas={antennas_enabled}"
+            f"cycles={self.total_cycles}, antennas={antennas_enabled}, "
+            f"voice_guidance={voice_guidance}"
         )
 
     @property
@@ -107,20 +119,39 @@ class MeditationMove(Move):  # type: ignore
         # Time within current cycle
         t_in_cycle = t - (cycle_idx * self.cycle_s)
         
-        # Determine phase: inhale or exhale
+        # Determine phase: inhale or exhale, and time within phase
         if t_in_cycle < self.inhale_s:
             phase = 'inhale'
             phase_t = t_in_cycle / self.inhale_s  # 0 to 1
+            time_in_phase = t_in_cycle
         else:
             phase = 'exhale'
             phase_t = (t_in_cycle - self.inhale_s) / self.exhale_s  # 0 to 1
-        
-        # Trigger breath sound on phase transitions (if enabled)
-        if self.breath_sound_enabled:
-            if phase != self._last_phase or cycle_idx != self._last_cycle_idx:
+            time_in_phase = t_in_cycle - self.inhale_s
+
+        # Current second within this phase (0-based)
+        current_second = int(time_in_phase)
+
+        # Trigger breath sounds on phase transitions
+        if phase != self._last_phase or cycle_idx != self._last_cycle_idx:
+            if self.breath_sound_enabled:
                 self._trigger_breath_sound(phase)
-                self._last_phase = phase
-                self._last_cycle_idx = cycle_idx
+            # Reset second counter on phase change
+            self._last_second = -1
+
+        # Trigger voice guidance on each second
+        if self.voice_guidance:
+            if phase != self._last_phase or cycle_idx != self._last_cycle_idx:
+                # Phase just changed - say "Inhale" or "Exhale"
+                self._speak_word(phase.capitalize())
+            elif current_second != self._last_second and current_second > 0:
+                # New second within phase - say the count
+                self._speak_count(current_second)
+
+        # Update tracking
+        self._last_phase = phase
+        self._last_cycle_idx = cycle_idx
+        self._last_second = current_second
         
         # Calculate variation for natural movement - more subtle
         base_yaw = 2.0 * np.sin(cycle_idx * 0.6)   # Reduced from 5.0
@@ -196,3 +227,65 @@ class MeditationMove(Move):  # type: ignore
         except Exception as e:
             # Audio is best-effort; don't crash meditation
             logger.debug(f"Breath sound error (non-critical): {e}")
+
+    def _speak_word(self, word: str) -> None:
+        """Speak a single word like 'Inhale' or 'Exhale'.
+
+        Args:
+            word: The word to speak
+        """
+        import threading
+
+        def speak_async():
+            try:
+                import subprocess
+                import time
+
+                # Very slow, calm voice for instruction words
+                # -s 80 = very slow speech
+                # -g 20 = add gaps between words (20 = 200ms)
+                subprocess.run(
+                    ['espeak', '-s', '80', '-p', '30', '-a', '180', '-g', '10', word],
+                    capture_output=True,
+                    timeout=4.0
+                )
+                # Add pause after the word
+                time.sleep(0.3)
+                logger.debug(f"Voice: {word}")
+            except Exception as e:
+                logger.debug(f"Voice error (non-critical): {e}")
+
+        thread = threading.Thread(target=speak_async, daemon=True)
+        thread.start()
+
+    def _speak_count(self, second: int) -> None:
+        """Speak a count number (1, 2, 3...).
+
+        Args:
+            second: The second number to speak (1-based)
+        """
+        import threading
+
+        def speak_async():
+            try:
+                import subprocess
+                # Get the number word
+                if second <= len(self._number_words):
+                    text = self._number_words[second - 1]
+                else:
+                    text = str(second)
+
+                # Slow, soft counting voice
+                # -s 90 = slow speech rate
+                # -g 5 = small gap
+                subprocess.run(
+                    ['espeak', '-s', '90', '-p', '35', '-a', '130', '-g', '5', text],
+                    capture_output=True,
+                    timeout=3.0
+                )
+                logger.debug(f"Count: {text}")
+            except Exception as e:
+                logger.debug(f"Count error (non-critical): {e}")
+
+        thread = threading.Thread(target=speak_async, daemon=True)
+        thread.start()
