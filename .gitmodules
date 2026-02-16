@@ -1,0 +1,4 @@
+[submodule "reachy_mini_conversation_app"]
+	path = reachy_mini_conversation_app
+	url = https://github.com/suhaasteja/reachy_mini_conversation_app.git
+	branch = test/teammate-pr2-espeak

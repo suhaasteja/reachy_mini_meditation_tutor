@@ -5,3 +5,4 @@ build/
 .python-version
 dist/
 .DS_Store
+reachy_mini_conversation_app_backup/
